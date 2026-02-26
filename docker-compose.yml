@@ -1,0 +1,33 @@
+
+services:
+  service-a:
+    build: ./services/service-a
+    container_name: service-a
+    ports:
+      - "4000:4000"
+    restart: always
+
+  service-b:
+    build: ./services/service-b
+    container_name: service-b
+    ports:
+      - "4001:4001"
+    restart: always
+
+  service-c:
+    build: ./services/service-c
+    container_name: service-c
+    ports:
+      - "4002:4002" 
+    restart: always
+
+  nginx:
+    build: ./nginx
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - service-a
+      - service-b
+      - service-c
+    restart: always
