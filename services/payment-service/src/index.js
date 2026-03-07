@@ -1,12 +1,16 @@
-import express from 'express';
-import router from './routes.js';
+'use strict';
+require('dotenv').config();
+const app = require('./app');
+const logger = require('./config/logger');
+const db = require('./config/database');
+const { initMetrics } = require('./config/metrics');
+const PORT = process.env.PORT || 3003;
 
-const app = express();
-app.use(express.json());
+initMetrics();
+process.on('SIGTERM', async () => { await db.pool.end(); process.exit(0); });
+process.on('SIGINT', async () => { await db.pool.end(); process.exit(0); });
+process.on('uncaughtException', (err) => { logger.error({ err }, 'Uncaught exception'); process.exit(1); });
 
-app.use("/", router);
-
-const PORT= 4002;
-app.listen(PORT, (req, res)=>{
-    console.log(` Service C is running on ${PORT}`);
-})
+db.connect()
+  .then(() => app.listen(PORT, () => logger.info({ port: PORT, service: 'payment-service' }, 'Service started')))
+  .catch((err) => { logger.error({ err }, 'Startup failed'); process.exit(1); });
