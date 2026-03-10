@@ -1,33 +1,308 @@
+version: '3.9'
 
+# ─── Networks ────────────────────────────────────────────────────────────────
+networks:
+  microservices-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ─── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  postgres-users:
+  postgres-orders:
+  postgres-payments:
+  postgres-notifications:
+  prometheus-data:
+  grafana-data:
+
+# ─── Services ─────────────────────────────────────────────────────────────────
 services:
-  service-a:
-    build: ./services/service-a
-    container_name: service-a
-    ports:
-      - "4000:4000"
-    restart: always
 
-  service-b:
-    build: ./services/service-b
-    container_name: service-b
-    ports:
-      - "4001:4001"
-    restart: always
+  # ── Databases ────────────────────────────────────────────────────────────────
 
-  service-c:
-    build: ./services/service-c
-    container_name: service-c
+  postgres-users:
+    image: postgres:16-alpine
+    container_name: postgres-users
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - postgres-users:/var/lib/postgresql/data
     ports:
-      - "4002:4002" 
-    restart: always
+      - "5433:5432"
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d users_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
-  nginx:
-    build: ./nginx
-    container_name: api-gateway
+  postgres-orders:
+    image: postgres:16-alpine
+    container_name: postgres-orders
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-orders:/var/lib/postgresql/data
     ports:
-      - "80:80"
+      - "5434:5432"
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orders_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres-payments:
+    image: postgres:16-alpine
+    container_name: postgres-payments
+    environment:
+      POSTGRES_DB: payments_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-payments:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payments_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres-notifications:
+    image: postgres:16-alpine
+    container_name: postgres-notifications
+    environment:
+      POSTGRES_DB: notifications_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-notifications:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d notifications_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Microservices ─────────────────────────────────────────────────────────────
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: user-service
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: user-service
+      PORT: 3001
+      LOG_LEVEL: info
+      DB_HOST: postgres-users
+      DB_PORT: 5432
+      DB_NAME: users_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_POOL_MAX: 20
+      ORDER_SERVICE_URL: http://order-service:3002
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
     depends_on:
-      - service-a
-      - service-b
-      - service-c
-    restart: always
+      postgres-users:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: order-service
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: order-service
+      PORT: 3002
+      LOG_LEVEL: info
+      DB_HOST: postgres-orders
+      DB_PORT: 5432
+      DB_NAME: orders_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_POOL_MAX: 20
+      USER_SERVICE_URL: http://user-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      PAYMENT_SUCCESS_RATE: "0.95"
+    depends_on:
+      postgres-orders:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: payment-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: payment-service
+      PORT: 3003
+      LOG_LEVEL: info
+      DB_HOST: postgres-payments
+      DB_PORT: 5432
+      DB_NAME: payments_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_POOL_MAX: 20
+      PAYMENT_SUCCESS_RATE: "0.95"
+    depends_on:
+      postgres-payments:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: notification-service
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: notification-service
+      PORT: 3004
+      LOG_LEVEL: info
+      DB_HOST: postgres-notifications
+      DB_PORT: 5432
+      DB_NAME: notifications_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_POOL_MAX: 10
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # ── Observability ──────────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/microservices.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - microservices-net
+    restart: unless-stopped
