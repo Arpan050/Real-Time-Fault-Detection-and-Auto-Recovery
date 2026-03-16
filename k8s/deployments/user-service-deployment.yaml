@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: microservices
+  labels:
+    app: user-service
+    version: v1
+    app.kubernetes.io/name: user-service
+    app.kubernetes.io/part-of: self-healing-platform
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: user-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0        # Zero-downtime deployments
+  template:
+    metadata:
+      labels:
+        app: user-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "3001"
+    spec:
+      # ── Graceful shutdown ───────────────────────────────────────────────────
+      terminationGracePeriodSeconds: 30
+
+      # ── Anti-affinity: spread pods across nodes ─────────────────────────────
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [user-service]
+                topologyKey: kubernetes.io/hostname
+
+      containers:
+        - name: user-service
+          image: user-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              name: http
+              protocol: TCP
+
+          # ── Environment ─────────────────────────────────────────────────────
+          envFrom:
+            - configMapRef:
+                name: microservices-config
+          env:
+            - name: SERVICE_NAME
+              value: user-service
+            - name: PORT
+              value: "3001"
+            - name: DB_HOST
+              value: postgres-users
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: users_db
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_PASSWORD
+
+          # ── Liveness Probe ───────────────────────────────────────────────────
+          # Kubernetes restarts the container if this fails 3 consecutive times.
+          # Only fails on truly unrecoverable states (OOM, deadlock, etc.)
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 3001
+            initialDelaySeconds: 30     # Give app time to start
+            periodSeconds: 10           # Check every 10s
+            timeoutSeconds: 5           # Fail if no response in 5s
+            failureThreshold: 3         # Restart after 3 failures
+            successThreshold: 1
+
+          # ── Readiness Probe ──────────────────────────────────────────────────
+          # Kubernetes removes pod from Service endpoints if this fails.
+          # Traffic stops going to this pod (but it's NOT restarted).
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 2          # Must pass twice to re-enter rotation
+
+          # ── Startup Probe ────────────────────────────────────────────────────
+          # Prevents liveness from killing pods still starting up.
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12         # 12 * 5s = 60s max startup time
+            successThreshold: 1
+
+          # ── Resource Limits ──────────────────────────────────────────────────
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # ── Security Context ─────────────────────────────────────────────────
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+
+      # ── Pod Security Context ──────────────────────────────────────────────────
+      securityContext:
+        fsGroup: 1001
