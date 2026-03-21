@@ -1,0 +1,401 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Self-Healing Microservices Platform — Real-Time Monitoring Dashboard",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "🔄 Service Health Overview",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 0, "text": "DOWN" }, "1": { "color": "green", "index": 1, "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "up{service=\"user-service\"}", "legendFormat": "user-service" }
+      ],
+      "title": "User Service Status",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 0, "text": "DOWN" }, "1": { "color": "green", "index": 1, "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "up{service=\"order-service\"}", "legendFormat": "order-service" }
+      ],
+      "title": "Order Service Status",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 0, "text": "DOWN" }, "1": { "color": "green", "index": 1, "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "up{service=\"payment-service\"}", "legendFormat": "payment-service" }
+      ],
+      "title": "Payment Service Status",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 0, "text": "DOWN" }, "1": { "color": "green", "index": 1, "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "up{service=\"notification-service\"}", "legendFormat": "notification-service" }
+      ],
+      "title": "Notification Service Status",
+      "type": "stat"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "📈 Request Rate & Latency",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(user_service_http_requests_total[1m])) by (service)", "legendFormat": "user-service" },
+        { "expr": "sum(rate(order_service_http_requests_total[1m])) by (service)", "legendFormat": "order-service" },
+        { "expr": "sum(rate(payment_service_http_requests_total[1m])) by (service)", "legendFormat": "payment-service" },
+        { "expr": "sum(rate(notification_service_http_requests_total[1m])) by (service)", "legendFormat": "notification-service" }
+      ],
+      "title": "Request Rate per Service (req/s)",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":1},{"color":"red","value":2}] }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 11,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(user_service_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "user-service p95" },
+        { "expr": "histogram_quantile(0.95, sum(rate(order_service_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "order-service p95" },
+        { "expr": "histogram_quantile(0.95, sum(rate(payment_service_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "payment-service p95" }
+      ],
+      "title": "P95 Response Time per Service",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "⚡ Circuit Breaker Status",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "green", "index": 0, "text": "CLOSED ✓" }, "1": { "color": "red", "index": 1, "text": "OPEN ✗" }, "2": { "color": "orange", "index": 2, "text": "HALF-OPEN ~" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"orange","value":2},{"color":"red","value":1}] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 15 },
+      "id": 20,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "colorMode": "background" },
+      "targets": [
+        { "expr": "order_service_circuit_breaker_state", "legendFormat": "{{ service }}" }
+      ],
+      "title": "Circuit Breaker States (Order Service)",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 15 },
+      "id": 21,
+      "targets": [
+        { "expr": "sum(rate(order_service_circuit_breaker_requests_total[1m])) by (outcome)", "legendFormat": "{{ outcome }}" }
+      ],
+      "title": "Circuit Breaker Request Outcomes",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "id": 103,
+      "title": "💼 Business Metrics",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null}] } } },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 20 },
+      "id": 30,
+      "options": { "reduceOptions": { "calcs": ["increase"] }, "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        { "expr": "increase(order_service_orders_created_total[1h])", "legendFormat": "Orders (1h)" }
+      ],
+      "title": "Orders Created (last 1h)",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null}] } } },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 20 },
+      "id": 31,
+      "options": { "reduceOptions": { "calcs": ["increase"] }, "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        { "expr": "increase(payment_service_revenue_total[1h])", "legendFormat": "Revenue (1h)" }
+      ],
+      "title": "Revenue Processed (last 1h)",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":null},{"color":"orange","value":0.9},{"color":"green","value":0.95}] } } },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 20 },
+      "id": 32,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        { "expr": "sum(rate(payment_service_payments_processed_total{status=\"completed\"}[5m])) / sum(rate(payment_service_payments_processed_total[5m]))", "legendFormat": "Success Rate" }
+      ],
+      "title": "Payment Success Rate",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null}] } } },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 20 },
+      "id": 33,
+      "options": { "reduceOptions": { "calcs": ["increase"] }, "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        { "expr": "increase(notification_service_sent_total{status=\"sent\"}[1h])", "legendFormat": "Notifications (1h)" }
+      ],
+      "title": "Notifications Sent (last 1h)",
+      "type": "stat"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 104,
+      "title": "🧠 Memory & CPU",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "bytes",
+          "max": 536870912
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "id": 40,
+      "targets": [
+        { "expr": "user_service_nodejs_heap_size_used_bytes", "legendFormat": "user-service heap used" },
+        { "expr": "order_service_nodejs_heap_size_used_bytes", "legendFormat": "order-service heap used" },
+        { "expr": "payment_service_nodejs_heap_size_used_bytes", "legendFormat": "payment-service heap used" },
+        { "expr": "notification_service_nodejs_heap_size_used_bytes", "legendFormat": "notification-service heap used" }
+      ],
+      "title": "Node.js Heap Usage",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "id": 41,
+      "targets": [
+        { "expr": "rate(user_service_process_cpu_seconds_total[1m])", "legendFormat": "user-service CPU" },
+        { "expr": "rate(order_service_process_cpu_seconds_total[1m])", "legendFormat": "order-service CPU" },
+        { "expr": "rate(payment_service_process_cpu_seconds_total[1m])", "legendFormat": "payment-service CPU" },
+        { "expr": "rate(notification_service_process_cpu_seconds_total[1m])", "legendFormat": "notification-service CPU" }
+      ],
+      "title": "CPU Usage per Service",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "id": 105,
+      "title": "⚠️ Error Rates",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":0.01},{"color":"red","value":0.05}] }
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "id": 50,
+      "targets": [
+        {
+          "expr": "sum(rate(user_service_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(user_service_http_requests_total[5m]))",
+          "legendFormat": "user-service 5xx rate"
+        },
+        {
+          "expr": "sum(rate(order_service_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(order_service_http_requests_total[5m]))",
+          "legendFormat": "order-service 5xx rate"
+        },
+        {
+          "expr": "sum(rate(payment_service_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(payment_service_http_requests_total[5m]))",
+          "legendFormat": "payment-service 5xx rate"
+        }
+      ],
+      "title": "HTTP 5xx Error Rate per Service",
+      "type": "timeseries"
+    }
+
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["microservices", "self-healing", "platform"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(up, service)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": { "query": "label_values(up, service)", "refId": "StandardVariableQuery" },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "label": "Service"
+      }
+    ]
+  },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Self-Healing Microservices Platform",
+  "uid": "selfhealing-platform-v1",
+  "version": 1
+}
