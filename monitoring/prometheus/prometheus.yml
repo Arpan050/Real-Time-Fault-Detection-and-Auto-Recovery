@@ -1,0 +1,97 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: 'local'
+    environment: 'development'
+
+# Alerting 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - alertmanager:9093
+
+# Rules 
+rule_files:
+  - 'alert_rules.yml'
+
+#  Scrape Configs 
+scrape_configs:
+
+  # Prometheus itself 
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # User Service
+  - job_name: 'user-service'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['user-service:3001']
+        labels:
+          service: 'user-service'
+          team: 'platform'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: environment
+        replacement: development
+
+  #  Order Service
+  - job_name: 'order-service'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['order-service:3002']
+        labels:
+          service: 'order-service'
+          team: 'platform'
+
+  # Payment Service
+  - job_name: 'payment-service'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['payment-service:3003']
+        labels:
+          service: 'payment-service'
+          team: 'platform'
+
+  # Notification Service
+  - job_name: 'notification-service'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['notification-service:3004']
+        labels:
+          service: 'notification-service'
+          team: 'platform'
+
+  # Kubernetes Pods (for K8s deployments using annotations) 
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name

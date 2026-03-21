@@ -1,0 +1,151 @@
+groups:
+  # ─── Service Health Alerts ────────────────────────────────────────────────────
+  - name: service_health
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.service }} is DOWN"
+          description: "Service {{ $labels.service }} on instance {{ $labels.instance }} has been down for more than 1 minute."
+          runbook: "https://wiki.internal/runbooks/service-down"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(user_service_http_requests_total{status_code=~"5.."}[5m])) by (service)
+            /
+            sum(rate(user_service_http_requests_total[5m])) by (service)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(user_service_http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 response time on {{ $labels.service }}"
+          description: "P95 latency is {{ $value }}s (threshold: 2s)"
+
+      - alert: VeryHighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(user_service_http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL: Very high latency on {{ $labels.service }}"
+          description: "P95 latency is {{ $value }}s (threshold: 5s)"
+
+  # ─── Circuit Breaker Alerts ───────────────────────────────────────────────────
+  - name: circuit_breaker
+    rules:
+      - alert: CircuitBreakerOpen
+        expr: |
+          user_service_circuit_breaker_state == 1 or
+          order_service_circuit_breaker_state == 1 or
+          payment_service_circuit_breaker_state == 1
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker OPEN for {{ $labels.service }}"
+          description: "The circuit breaker for downstream service {{ $labels.service }} is OPEN. Requests are failing fast."
+
+      - alert: HighCircuitBreakerRejections
+        expr: |
+          rate(order_service_circuit_breaker_requests_total{outcome="rejected"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High circuit breaker rejections for {{ $labels.service }}"
+
+  # ─── Resource Alerts ─────────────────────────────────────────────────────────
+  - name: resource_usage
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (user_service_nodejs_heap_size_used_bytes / user_service_nodejs_heap_size_total_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High heap memory usage in {{ $labels.service }}"
+          description: "Heap usage is {{ $value | humanizePercentage }}"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (user_service_nodejs_heap_size_used_bytes / user_service_nodejs_heap_size_total_bytes) > 0.95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL heap memory usage in {{ $labels.service }} — pod may restart"
+
+  # ─── Database Alerts ──────────────────────────────────────────────────────────
+  - name: database
+    rules:
+      - alert: HighDatabaseQueryDuration
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(user_service_db_query_duration_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: user_service_db_pool_connections{state="waiting"} > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool exhausted"
+
+  # ─── Business Alerts ──────────────────────────────────────────────────────────
+  - name: business
+    rules:
+      - alert: HighPaymentFailureRate
+        expr: |
+          (
+            sum(rate(payment_service_payments_processed_total{status="failed"}[5m]))
+            /
+            sum(rate(payment_service_payments_processed_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: payments
+        annotations:
+          summary: "High payment failure rate: {{ $value | humanizePercentage }}"
+          description: "More than 10% of payments are failing in the last 5 minutes."
+
+      - alert: LowOrderCreationRate
+        expr: |
+          rate(order_service_orders_created_total[10m]) < 0.1
+          and
+          rate(order_service_http_requests_total[10m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: orders
+        annotations:
+          summary: "Order creation rate dropped significantly"
