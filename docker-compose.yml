@@ -298,9 +298,8 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/microservices.json
     volumes:
-      - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - /run/desktop/mnt/host/c/Users/ARPAN PAUL/OneDrive/Desktop/Real-Time-Fault-Detection-and-Auto-Recovery/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - /run/desktop/mnt/host/c/Users/ARPAN PAUL/OneDrive/Desktop/Real-Time-Fault-Detection-and-Auto-Recovery/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
       - prometheus
     networks:
